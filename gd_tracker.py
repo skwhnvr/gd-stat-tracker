@@ -3,15 +3,16 @@ import csv
 import requests
 import matplotlib.pyplot as plt
 from datetime import datetime
+# Import zoneinfo to strictly handle the UK timezone
+from zoneinfo import ZoneInfo 
 
 # --- CONFIGURATION ---
-TARGET_USERNAME = "skyewhenever"  # <-- REPLACE WITH YOUR EXACT GD USERNAME
+TARGET_USERNAME = "skyewhenever"  
 CSV_FILE = "gd_rank_history.csv"
 GRAPH_FILE = "graph.png"
 # ---------------------
 
 def fetch_gd_rank(username):
-    # Using GDBrowser's public API bypasses Cloudflare blocks automatically
     url = f"https://gdbrowser.com/api/profile/{username}"
     
     try:
@@ -22,8 +23,6 @@ def fetch_gd_rank(username):
             return None
             
         data = response.json()
-        
-        # Extract rank safely
         rank = data.get("rank", 0)
         
         if rank == 0:
@@ -37,14 +36,37 @@ def fetch_gd_rank(username):
         return None
 
 def log_to_csv(rank):
-    file_exists = os.path.isfile(CSV_FILE)
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    # 🌟 THE FIX: Force the script to fetch the time specifically for Europe/London
+    uk_tz = ZoneInfo("Europe/London")
+    date_str = datetime.now(uk_tz).strftime("%Y-%m-%d")
     
-    with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as file:
+    rows = []
+    updated = False
+
+    # Read existing data to prevent duplicate date rows if run multiple times a day
+    if os.path.isfile(CSV_FILE):
+        with open(CSV_FILE, mode="r", encoding="utf-8") as file:
+            reader = list(csv.reader(file))
+            if reader:
+                header = reader[0]
+                for row in reader[1:]:
+                    if row:
+                        if row[0] == date_str:
+                            row[1] = str(rank)
+                            updated = True
+                        rows.append(row)
+            else:
+                header = ["Date", "Leaderboard Position"]
+    else:
+        header = ["Date", "Leaderboard Position"]
+
+    if not updated:
+        rows.append([date_str, rank])
+
+    with open(CSV_FILE, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(["Date", "Leaderboard Position"])
-        writer.writerow([date_str, rank])
+        writer.writerow(header)
+        writer.writerows(rows)
 
 def generate_graph():
     if not os.path.isfile(CSV_FILE):
@@ -58,23 +80,26 @@ def generate_graph():
         next(reader) 
         for row in reader:
             if row:
-                dates.append(row[0])
+                # Convert date strings to actual datetime objects for accurate spacing
+                dates.append(datetime.strptime(row[0], "%Y-%m-%d"))
                 ranks.append(int(row[1]))
 
     if not ranks:
         return
 
     plt.figure(figsize=(10, 5))
-    plt.plot(dates, ranks, marker='o', color='#2da44e', linewidth=2, label="Leaderboard Rank")
+    
+    # Using plot_date to keep spacing mathematically accurate across calendar days
+    plt.plot_date(dates, ranks, linestyle='-', marker='o', color='#2da44e', linewidth=2)
     
     plt.title(f"Geometry Dash Global Rank: {TARGET_USERNAME}", fontsize=14, fontweight='bold')
     plt.xlabel("Date", fontsize=11)
     plt.ylabel("Leaderboard Position (Lower is Better)", fontsize=11)
     
-    plt.gca().invert_yaxis()  # Keeps higher ranks visually higher on the chart
+    plt.gca().invert_yaxis()  
     
+    plt.gcf().autofmt_xdate() # Automatically tilts and formats dates nicely
     plt.grid(True, linestyle='--', alpha=0.6)
-    plt.xticks(rotation=45)
     plt.tight_layout()
     
     plt.savefig(GRAPH_FILE, dpi=150)
