@@ -2,7 +2,7 @@ name: Daily GD Rank Tracker
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs automatically every night at 12:00 AM UTC
+    - cron: '17 4 * * *' # Runs automatically every night at 12:00 AM UTC
   workflow_dispatch: # Allows you to force-trigger it manually whenever you want
 
 jobs:
