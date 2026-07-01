@@ -1,7 +1,6 @@
 import os
 import csv
 import requests
-import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
