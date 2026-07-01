@@ -29,6 +29,11 @@ jobs:
       run: |
         git config --global user.name "GitHub Actions Bot"
         git config --global user.email "actions@github.com"
-        git add gd_rank_history.csv graph.png
-        git commit -m "Automated daily stats & chart update" || exit 0
-        git push
+        
+        # Check if the files exist before trying to add them
+        [ -f gd_rank_history.csv ] && git add gd_rank_history.csv
+        [ -f graph.png ] && git add graph.png
+        
+        # Commit and push only if changes were staged
+        git commit -m "Automated daily stats & chart update" || echo "No changes to commit"
+        git push || echo "No changes to push"
