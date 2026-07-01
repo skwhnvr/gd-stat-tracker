@@ -2,6 +2,8 @@ import os
 import csv
 import requests
 import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.express as px
 from datetime import datetime
 # Import zoneinfo to strictly handle the UK timezone
 from zoneinfo import ZoneInfo 
@@ -72,42 +74,38 @@ def generate_graph():
     if not os.path.isfile(CSV_FILE):
         return
 
-    dates = []
-    ranks = []
-    
-    with open(CSV_FILE, mode="r", encoding="utf-8") as file:
-        reader = csv.reader(file)
-        next(reader) 
-        for row in reader:
-            if row:
-                # Convert date strings to actual datetime objects for accurate spacing
-                dates.append(datetime.strptime(row[0], "%Y-%m-%d"))
-                ranks.append(int(row[1]))
-
-    if not ranks:
+    # Read the data using pandas for easier charting
+    df = pd.read_csv(CSV_FILE)
+    if df.empty:
         return
 
-    plt.figure(figsize=(10, 5))
-    
-    # Using plot_date to keep spacing mathematically accurate across calendar days
-    plt.plot_date(dates, ranks, linestyle='-', marker='o', color='#2da44e', linewidth=2)
-    
-    plt.title(f"Geometry Dash Global Rank: {TARGET_USERNAME}", fontsize=14, fontweight='bold')
-    plt.xlabel("Date", fontsize=11)
-    plt.ylabel("Leaderboard Position (Lower is Better)", fontsize=11)
-    
-    plt.gca().invert_yaxis()  
-    
-    plt.gcf().autofmt_xdate() # Automatically tilts and formats dates nicely
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
-    
-    plt.savefig(GRAPH_FILE, dpi=150)
-    plt.close()
+    # Convert Date column to actual datetime objects
+    df['Date'] = pd.to_datetime(df['Date'])
 
-if __name__ == "__main__":
-    current_rank = fetch_gd_rank(TARGET_USERNAME)
-    if current_rank is not None:
-        log_to_csv(current_rank)
-        generate_graph()
-        print(f"Successfully logged rank: {current_rank}")
+    # Create an interactive line chart
+    fig = px.line(
+        df, 
+        x='Date', 
+        y='Leaderboard Position', 
+        title=f"Geometry Dash Global Rank: {TARGET_USERNAME}",
+        markers=True
+    )
+
+    # Style tweaks: Invert Y-axis (lower number = better rank) and add time filters
+    fig.update_layout(
+        yaxis=dict(autorange="reversed"), # Inverts the rank axis natively!
+        template="plotly_dark",           # Clean dark mode look
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=7, label="1w", step="day", stepmode="backward"),
+                    dict(count=30, label="1m", step="day", stepmode="backward"),
+                    dict(step="all", label="All")
+                ])
+            ),
+            type="date"
+        )
+    )
+
+    # Save as an interactive HTML webpage instead of a flat picture
+    fig.write_html("index.html")
