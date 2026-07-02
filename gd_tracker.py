@@ -8,7 +8,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo 
 
 # --- CONFIGURATION ---
-TARGET_USERNAME = "skyewhenever"  
+TARGET_USERNAME = "skyewhenever"
 CSV_FILE = "gd_rank_history.csv"
 GRAPH_FILE = "graph.png"
 # ---------------------
