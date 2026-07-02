@@ -87,7 +87,7 @@ def generate_graph():
         )
 
         fig.update_layout(
-            yaxis=dict(autorange="reversed", title="Leaderboard Position (Lower is Better)"),
+            yaxis=dict(autorange="reversed", title="Leaderboard Position"),
             xaxis=dict(type="category", title="Date"),
             template="plotly_dark"
         )
